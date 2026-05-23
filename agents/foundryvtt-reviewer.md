@@ -31,7 +31,7 @@ description: |
   </example>
 model: inherit
 color: orange
-tools: ["Read", "Grep", "Glob"]
+tools: Read, Grep, Glob
 ---
 
 You are an expert code reviewer specializing in FoundryVTT v13 system and module development. Your job is to analyze code for deprecated patterns, ApplicationV2 mistakes, template issues, i18n violations, and common errors.

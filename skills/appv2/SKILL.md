@@ -1,5 +1,5 @@
 ---
-name: ApplicationV2 Development
+name: appv2
 description: >-
   This skill should be used when the user asks about "ApplicationV2", "ActorSheetV2",
   "ItemSheetV2", "DocumentSheetV2", "DialogV2", "DEFAULT_OPTIONS", "PARTS",
