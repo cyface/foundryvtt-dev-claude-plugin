@@ -1,6 +1,7 @@
 ---
 name: foundryvtt-reviewer
-description: Use this agent to review FoundryVTT system or module code for deprecated V12 patterns, ApplicationV2 mistakes, template issues, i18n violations, and common errors. This agent should be used proactively after writing or modifying code that uses FoundryVTT APIs including ApplicationV2 classes (ActorSheetV2, ItemSheetV2, DocumentSheetV2), Handlebars templates with data-action or data-tab attributes, hooks (Hooks.on, Hooks.once), document classes (Actor, Item), form handling (submitOnChange, _processFormData), or sheet registration.
+description: |
+  Use this agent to review FoundryVTT system or module code for deprecated V12 patterns, ApplicationV2 mistakes, template issues, i18n violations, and common errors. This agent should be used proactively after writing or modifying code that uses FoundryVTT APIs including ApplicationV2 classes (ActorSheetV2, ItemSheetV2, DocumentSheetV2), Handlebars templates with data-action or data-tab attributes, hooks (Hooks.on, Hooks.once), document classes (Actor, Item), form handling (submitOnChange, _processFormData), or sheet registration.
 
   <example>
   Context: The assistant has just written a new actor sheet extending ActorSheetV2.
@@ -28,7 +29,6 @@ description: Use this agent to review FoundryVTT system or module code for depre
   After adding hook-based code, proactively review to catch V12 hook names, jQuery usage, and signature mismatches.
   </commentary>
   </example>
-
 model: inherit
 color: orange
 tools: ["Read", "Grep", "Glob"]
