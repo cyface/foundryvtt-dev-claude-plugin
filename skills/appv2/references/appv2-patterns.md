@@ -1,6 +1,6 @@
 # ApplicationV2 Code Patterns
 
-Complete code examples for common FoundryVTT V13 ApplicationV2 patterns.
+Complete code examples for common FoundryVTT **V14** ApplicationV2 patterns. Verified against Foundry 14.365 Stable; these patterns also work on V13 except where a V14 note says otherwise.
 
 ## Complete Actor Sheet Example
 
@@ -39,12 +39,13 @@ class MyActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static TABS = {
     sheet: {
       tabs: [
-        { id: 'attributes', group: 'sheet', label: 'MY_SYSTEM.Attributes' },
-        { id: 'inventory', group: 'sheet', label: 'MY_SYSTEM.Inventory' },
-        { id: 'spells', group: 'sheet', label: 'MY_SYSTEM.Spells' },
-        { id: 'biography', group: 'sheet', label: 'MY_SYSTEM.Biography' }
+        { id: 'attributes', icon: 'fa-solid fa-dice-d20' },
+        { id: 'inventory', icon: 'fa-solid fa-sack' },
+        { id: 'spells', icon: 'fa-solid fa-wand-sparkles' },
+        { id: 'biography', icon: 'fa-solid fa-book' }
       ],
-      initial: 'attributes'
+      initial: 'attributes',
+      labelPrefix: 'MY_SYSTEM.TABS'   // -> MY_SYSTEM.TABS.attributes, ...
     }
   }
 
@@ -54,7 +55,7 @@ class MyActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       template: 'systems/my-system/templates/actor/header.html'
     },
     tabs: {
-      template: 'systems/my-system/templates/actor/tabs-nav.html'
+      template: 'templates/generic/tab-navigation.hbs'   // core partial
     },
     attributes: {
       template: 'systems/my-system/templates/actor/tab-attributes.html'
@@ -92,6 +93,15 @@ class MyActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     )
 
     return context
+  }
+
+  /** @inheritDoc */
+  async _preparePartContext(partId, context, options) {
+    const partContext = await super._preparePartContext(partId, context, options)
+    // Expose the current tab as {{tab}} inside tab parts
+    if (partId in partContext.tabs) partContext.tab = partContext.tabs[partId]
+    if (partId === 'tabs') partContext.tabClasses = 'top-tabs'
+    return partContext
   }
 
   /**
@@ -170,12 +180,15 @@ class MyActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 </header>
 ```
 
-**Tab navigation template (`actor/tabs-nav.html`):**
+**Tab navigation.** Prefer the core partial `templates/generic/tab-navigation.hbs`, which renders `context.tabs` for you. If you write your own, `context.tabs` is a **record keyed by tab id** (not an array) and the nav links must carry `data-action="tab"` — tab switching is a framework action, not a CSS-class listener:
+
 ```html
-<nav class="tabs sheet-tabs" data-group="{{tabs.sheet.group}}">
-  {{#each tabs.sheet.tabs}}
-    <a class="tab {{this.cssClass}}" data-tab="{{this.id}}" data-group="{{this.group}}">
-      {{localize this.label}}
+<nav class="tabs sheet-tabs" aria-roledescription="{{localize 'SHEETS.FormNavLabel'}}">
+  {{#each tabs as |tab|}}
+    <a data-action="tab" data-group="{{tab.group}}" data-tab="{{tab.id}}"
+       class="{{tab.cssClass}}">
+      {{#if tab.icon}}<i class="{{tab.icon}}" inert></i>{{/if}}
+      {{#if tab.label}}<span>{{localize tab.label}}</span>{{/if}}
     </a>
   {{/each}}
 </nav>
@@ -275,10 +288,11 @@ class MyItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
   static TABS = {
     sheet: {
       tabs: [
-        { id: 'details', group: 'sheet', label: 'MY_SYSTEM.Details' },
-        { id: 'description', group: 'sheet', label: 'MY_SYSTEM.Description' }
+        { id: 'details', icon: 'fa-solid fa-list' },
+        { id: 'description', icon: 'fa-solid fa-book' }
       ],
-      initial: 'details'
+      initial: 'details',
+      labelPrefix: 'MY_SYSTEM.TABS'
     }
   }
 
@@ -288,7 +302,7 @@ class MyItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
       template: 'systems/my-system/templates/item/header.html'
     },
     tabs: {
-      template: 'systems/my-system/templates/item/tabs-nav.html'
+      template: 'templates/generic/tab-navigation.hbs'
     },
     details: {
       template: 'systems/my-system/templates/item/tab-details.html'
@@ -388,7 +402,19 @@ const confirmed = await foundry.applications.api.DialogV2.confirm({
   no: { callback: () => false }
 })
 
-// Input prompt
+// Form input prompt — DialogV2.input returns the form data object directly
+const data = await foundry.applications.api.DialogV2.input({
+  window: { title: 'MY_SYSTEM.EnterValue' },
+  content: `
+    <div class="form-group">
+      <label>${game.i18n.localize('MY_SYSTEM.Value')}</label>
+      <input type="number" name="value" value="0">
+    </div>
+  `
+})
+// data?.value — null if the dialog was dismissed
+
+// Custom prompt with an explicit callback
 const result = await foundry.applications.api.DialogV2.prompt({
   window: { title: 'MY_SYSTEM.EnterValue' },
   content: `
@@ -555,22 +581,24 @@ class MyActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static TABS = {
     sheet: {
       tabs: [
-        { id: 'attributes', group: 'sheet', label: 'MY_SYSTEM.Attributes' },
-        { id: 'inventory', group: 'sheet', label: 'MY_SYSTEM.Inventory' }
+        { id: 'attributes', icon: 'fa-solid fa-dice-d20' },
+        { id: 'inventory', icon: 'fa-solid fa-sack' }
       ],
-      initial: 'attributes'
+      initial: 'attributes',
+      labelPrefix: 'MY_SYSTEM.TABS'
     }
   }
 
+  /** @override */
   _getTabsConfig(group) {
-    const tabs = foundry.utils.deepClone(super._getTabsConfig(group))
+    const config = foundry.utils.deepClone(super._getTabsConfig(group))
 
     // Add spells tab only for spellcaster types
     if (this.document.type === 'spellcaster') {
-      tabs.tabs.push({ id: 'spells', group: 'sheet', label: 'MY_SYSTEM.Spells' })
+      config.tabs.push({ id: 'spells', icon: 'fa-solid fa-wand-sparkles' })
     }
 
-    return tabs
+    return config
   }
 }
 ```
@@ -691,7 +719,7 @@ class MyActorConfig extends FormApplication {
 }
 ```
 
-### After (V13)
+### After (V13/V14)
 ```javascript
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
@@ -736,3 +764,65 @@ class MyActorConfig extends HandlebarsApplicationMixin(ApplicationV2) {
 // Usage — note single options object
 new MyActorConfig({ document: someActor }).render(true)
 ```
+
+
+## Detached (Pop-Out) Windows — V14
+
+Every framed ApplicationV2 gets Detach/Attach header buttons for free. Only override the hooks when a sheet has state that cannot survive moving to another browser document.
+
+```javascript
+class MyActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
+  /** Refuse to detach compendium sheets */
+  _canDetach() {
+    return super._canDetach() && !this.actor.pack
+  }
+
+  /** Re-derive anything bound to the old document/window */
+  _onDetach(from, to) {
+    super._onDetach(from, to)
+    this.#observer?.disconnect()
+    this.#observer = new ResizeObserver(() => this.#syncLayout())
+    this.#observer.observe(this.element)
+  }
+
+  _onAttach(from, to) {
+    super._onAttach(from, to)
+    this._onDetach(from, to)   // same re-binding work
+  }
+
+  /** Child apps opened from a detached sheet should follow it */
+  static async #openConfig(event, target) {
+    this.renderChild(new MyConfigDialog({ document: this.actor }))
+  }
+}
+
+// Open detached programmatically
+actor.sheet.render({ window: { detach: true } })
+```
+
+**Rules of thumb for detach-safe sheets:**
+- Never cache the global `document` or `window` at render time — read `this.element.ownerDocument` / `.defaultView` when you need them.
+- Measure with `this.element.getBoundingClientRect()`, not viewport globals.
+- Anything registered on `document` (listeners, observers, portals) is re-registered in `_onDetach` / `_onAttach`.
+
+## Schema-Driven Form Fields — V14
+
+`DocumentSheetV2._prepareContext` hands you `fields` (the document's schema fields) and `source` (the raw `_source` data). The `formGroup` and `formInput` helpers build labelled, correctly typed inputs from those, so field type changes in the data model propagate to the sheet automatically:
+
+```javascript
+async _prepareContext(options) {
+  const context = await super._prepareContext(options)
+  context.systemFields = this.document.system.schema.fields
+  return context
+}
+```
+
+```html
+{{formGroup systemFields.hp.fields.value value=source.system.hp.value localize=true}}
+{{formGroup systemFields.level value=source.system.level localize=true}}
+
+{{!-- Just the input, no label wrapper --}}
+{{formInput systemFields.notes value=source.system.notes}}
+```
+
+Bind to `source.*`, not the prepared `system.*` — prepared data may contain values derived by Active Effects, and writing those back to the document would bake the effect into the base data.

@@ -1,6 +1,6 @@
 # Hooks and Documents Reference
 
-Complete reference for FoundryVTT hooks lifecycle, document classes, and core APIs.
+Complete reference for FoundryVTT hooks lifecycle, document classes, and core APIs. Targets **V14** (verified against 14.365 Stable).
 
 ## Hooks Lifecycle
 
@@ -36,7 +36,7 @@ Hooks.on('createActor', (actor, options, userId) => {
 })
 ```
 
-### Render Hooks (V13)
+### Render Hooks
 
 ```javascript
 // Fires when any application renders
@@ -45,10 +45,31 @@ Hooks.on('renderApplication', (app, html, data) => { })
 // Fires for specific application class
 Hooks.on('renderMyActorSheet', (app, html, data) => { })
 
-// Chat message HTML (V13 name)
+// Chat message HTML (V13+ name; the V12 `renderChatMessage` is gone)
 Hooks.on('renderChatMessageHTML', (message, html, data) => {
   // html is a DOM element (not jQuery)
   const content = html.querySelector('.message-content')
+})
+
+// V14: fires before an ApplicationV2 renders, with its context and options
+Hooks.on('preRenderApplication', (app, context, options) => { })
+```
+
+### Context Menu Hooks
+
+`get{DocumentName}ContextOptions` hooks fire **once, at the owning application's first
+render** — not each time the menu opens. Core UI apps first render during boot, before
+`ready`, so registering one of these from `ready` silently does nothing. Register at
+import time or in `init`, and put per-open logic in `visible`.
+
+```javascript
+Hooks.on('getActorContextOptions', (application, entries) => {
+  entries.push({
+    label: 'MY_SYSTEM.QuickLevelUp',      // V14: raw i18n key, core localizes it
+    icon: 'fa-solid fa-arrow-up',         // V14: class name, not <i> HTML
+    visible: el => game.user.isGM,        // V14: was `condition`; evaluated per open
+    onClick: (event, el) => levelUp(el.dataset.entryId)   // V14: was `callback`
+  })
 })
 ```
 
@@ -110,9 +131,15 @@ Document (Base)
 +-- RollTable
 +-- TableResult
 +-- ActiveEffect (embedded in Actor or Item)
++-- Region (embedded in Scene — replaces MeasuredTemplate in V14)
++-- RegionBehavior (embedded in Region)
++-- Level (embedded in Scene — Scene Levels, new in V14)
 +-- User
 +-- Folder
 ```
+
+`MeasuredTemplate` was **removed in V14**; areas of effect are Regions with shapes
+(`circle`, `rectangle`, `ellipse`, `polygon`, `cone`, `ring`, `line`, `emanation`).
 
 ### Custom Document Classes
 
@@ -122,8 +149,16 @@ Register in `init` hook:
 Hooks.once('init', () => {
   CONFIG.Actor.documentClass = MyActor
   CONFIG.Item.documentClass = MyItem
+
+  // V14: subtype schemas come from TypeDataModel classes, not template.json
+  CONFIG.Actor.dataModels = { character: CharacterData, npc: NPCData }
+  CONFIG.Item.dataModels = { weapon: WeaponData, armor: ArmorData }
 })
 ```
+
+Any `prepareBaseData()` override on a document class **must** call
+`super.prepareBaseData()` — V14 resets Active Effect phase tracking there, and skipping
+it throws *"phase has already completed"* on the second preparation cycle.
 
 ### Common Document Operations
 
@@ -177,17 +212,42 @@ await actor.updateEmbeddedDocuments('Item', [
 // Delete embedded item
 await actor.deleteEmbeddedDocuments('Item', [itemId])
 
-// Active Effects
+// Active Effects — V14 shape: changes live in system data with string types
 await actor.createEmbeddedDocuments('ActiveEffect', [{
   name: 'Blessed',
-  icon: 'icons/svg/aura.svg',
-  changes: [{
-    key: 'system.abilities.str.value',
-    mode: CONST.ACTIVE_EFFECT_MODES.ADD,
-    value: '2'
-  }]
+  img: 'icons/svg/aura.svg',
+  system: {
+    changes: [{
+      key: 'system.abilities.str.value',
+      type: 'add',          // was: mode: CONST.ACTIVE_EFFECT_MODES.ADD
+      value: 2,
+      phase: 'initial'      // 'initial' (base values) or 'final' (derived values)
+    }]
+  }
 }])
+
+// Reading effects
+for (const effect of actor.allApplicableEffects()) {
+  for (const change of effect.system?.changes ?? []) {
+    if (change.type === 'add') { /* … */ }
+  }
+}
 ```
+
+### Batched Modifications (V14)
+
+When multiple writes must not be interleaved with network latency, or must succeed or
+fail together:
+
+```javascript
+await foundry.documents.modifyBatch([
+  { action: 'update', documentName: 'Actor', updates: [{ _id: actor.id, 'system.size': 'large' }] },
+  { action: 'update', documentName: 'Token', updates: [{ _id: tokenId, width: 2, height: 2 }], parent: scene }
+])
+```
+
+A batch cannot reference the result of an earlier operation within the same batch, and
+any cancellation or exception rolls the whole batch back.
 
 ## Game Object
 
@@ -350,9 +410,17 @@ await roll.evaluate()
 // Send to chat
 await roll.toMessage({
   speaker: ChatMessage.getSpeaker({ actor }),
-  flavor: 'Attack Roll'
+  flavor: game.i18n.localize('MY_SYSTEM.AttackRoll')
 })
+
+// V14: visibility is a *message mode*, not a roll mode
+await roll.toMessage(
+  { speaker: ChatMessage.getSpeaker({ actor }) },
+  { messageMode: game.settings.get('core', 'messageMode') }   // 'public' | 'gm' | 'blind' | 'self' | 'ic'
+)
 ```
+
+Booleans inside dice formulas evaluate to `0`/`1` automatically in V14.
 
 ### Roll Formulas
 
@@ -424,8 +492,11 @@ Hooks.once('init', () => {
 
 Use in templates:
 ```handlebars
-{{> "systems/my-system/templates/partials/ability-score.html" ability=str}}
+{{> "systems/my-system/templates/partials/ability-score.hbs" ability=str}}
 ```
+
+V14 removed the `{{select}}` and `{{colorPicker}}` helpers — use `{{selectOptions}}` and
+the `<color-picker>` element instead.
 
 ## Compendium Access
 
