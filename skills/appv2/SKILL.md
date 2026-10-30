@@ -12,12 +12,11 @@ description: >-
   "inline item editing", "CSS theming in Foundry", "theme variables",
   "CSS layers", or mentions FoundryVTT V13/V14 application classes, sheet
   patterns, or migration between generations.
-version: 2.0.0
 ---
 
 # FoundryVTT V14 ApplicationV2 Development Guide
 
-Target: **FoundryVTT V14** (verified against 14.365 Stable). ApplicationV2 is the application layer — plain DOM, declarative actions, template parts, and a tab system driven by `static TABS`.
+Target: **FoundryVTT V14** (last-verified build: see the plugin README). ApplicationV2 is the application layer — plain DOM, declarative actions, template parts, and a tab system driven by `static TABS`.
 
 ApplicationV1 (`Application`, `FormApplication`, `Dialog`, `DocumentSheet`) still loads in V14 but is deprecated with **removal targeted for V16**. All new work uses ApplicationV2. V14 ships no core AppV1 windows: in a running world every app root is `.application`, and `.app` matches nothing (this has real CSS consequences — see [CSS Theming](#css-theming)).
 
@@ -110,6 +109,8 @@ static PARTS = {
   }
 }
 ```
+
+**Template file extension**: Foundry fetches whatever path you give and compiles it with Handlebars, so the extension is a convention, not a requirement. Core and most newer systems use `.hbs`, which this guide uses throughout; `.html` works identically and many existing systems use it. Pick one and stay consistent.
 
 **Cannot use CONFIG values in static initializers** — `CONFIG` is undefined when the class body evaluates:
 
@@ -208,7 +209,7 @@ static DEFAULT_OPTIONS = {
 // No handler needed — DocumentSheetV2 updates the document
 ```
 
-The submit pipeline is `_onSubmitForm` → `_prepareSubmitData` → `_processFormData` → `_processSubmitData`. Override `_processFormData` to reshape the flat form object, and `_processSubmitData` to run work after the document update.
+The submit pipeline is `_onSubmitForm` → `_prepareSubmitData` → `_processFormData` → `_processSubmitData`. `_processFormData` returns `foundry.utils.expandObject(formData.object)`; override it to reshape that expanded object, and override `_processSubmitData(event, form, submitData, options)` to run work after the document update.
 
 ### Pattern 2: Explicit Submit (Dialogs)
 
@@ -349,7 +350,7 @@ Building plugins: `foundry.prosemirror.defaultPlugins` is deprecated — use `fo
 Any framed ApplicationV2 can be torn off into a separate browser window. The header buttons come free; the hooks let you opt out or react:
 
 ```javascript
-render({ window: { detach: true } })   // open detached programmatically
+render({ window: { detached: true } })   // open detached programmatically
 
 _canDetach() { return super._canDetach() && !this.actor.pack }   // veto
 _onDetach(from, to) { /* re-bind anything tied to the old document */ }

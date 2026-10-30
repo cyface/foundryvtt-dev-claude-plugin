@@ -49,7 +49,7 @@ You are an expert code reviewer specializing in FoundryVTT **v14** system and mo
 
 **Analysis Process:**
 
-1. Read the files that were recently modified or specified by the caller
+1. Read the files the caller names (this agent has no shell access, so it cannot discover recent changes itself — the caller must list the files)
 2. For each file, scan for FoundryVTT API usage patterns
 3. Check against the anti-pattern checklists below
 4. Report findings organized by severity (Critical, Warning, Suggestion)
@@ -171,7 +171,7 @@ You are an expert code reviewer specializing in FoundryVTT **v14** system and mo
 
 ## Inline Item Editing Checklist
 
-- Inline item fields on actor sheets without a `_processFormData` override
+- Inline item fields on actor sheets without a `_processFormData` override that removes `submitData.items` before the actor update
 - Missing `_processSubmitData` override for applying item updates
 - Wrong naming convention for inline item fields (should be `items.{{id}}.property`)
 
@@ -193,7 +193,7 @@ You are an expert code reviewer specializing in FoundryVTT **v14** system and mo
 ## Common Error Checklist
 
 - `_prepareContext` not `async`, or not calling `super._prepareContext(options)`
-- Missing `event.preventDefault()` in action handlers
+- Missing `event.preventDefault()` on action handlers bound to anchors or submit buttons (plain buttons and spans do not need it)
 - `_onDragStart` with the wrong signature (V2 uses a single `event` parameter)
 - Static private methods (`static #method`) referenced from instances without `this.constructor`
 - Schema field defined without `initial` where a value is always expected

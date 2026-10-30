@@ -1,6 +1,6 @@
 # V13 → V14 Changes (Data and Documents)
 
-The data-side companion to the appv2 skill's `references/appv2-migration.md`, which covers the application layer. Verified against Foundry **14.365 Stable**.
+The data-side companion to the appv2 skill's `references/appv2-migration.md`, which covers the application layer. Last-verified build: see the plugin README.
 
 ## Environment
 
@@ -15,7 +15,7 @@ The data-side companion to the appv2 skill's `references/appv2-migration.md`, wh
 
 ```json
 {
-  "compatibility": { "minimum": "14", "verified": "14.365" },
+  "compatibility": { "minimum": "14", "verified": "14.x" },
   "documentTypes": {
     "Actor": { "character": {}, "npc": {} },
     "Item":  { "weapon": {}, "armor": {}, "spell": {} }
@@ -191,7 +191,7 @@ The instance methods `apply`, `_applyAdd`, `_applyMultiply`, `_applyOverride`, `
 
 - `origin` is a `DocumentUUIDField` with `relative: true` — a plain non-UUID string is moved to `flags.core.originText` on migration
 - Duration: `duration.seconds` / `.rounds` / `.turns` → `duration.value` + `duration.units`, with units `seconds`, `minutes`, `hours`, `days`, `months`, `years`, `rounds`, `turns`
-- Start data: `duration.startTime` / `startRound` / `startTurn` / `combat` → `start.time` / `start.round` / `start.turn` / `start.combat`
+- Start data: `duration.startTime` / `startRound` / `startTurn` / `combat` → `start.time` / `start.round` / `start.turn` / `start.combat`, plus new `start.combatant` and `start.initiative`
 - Expiry events: `combatStart`, `roundStart`, `turnStart`; extend via `CONFIG.ActiveEffect.expiryEvents` (and call `ActiveEffect.registry.refresh` yourself)
 - `showIcon` (`CONST.ACTIVE_EFFECT_SHOW_ICON`: `NEVER` / `CONDITIONAL` / `ALWAYS`) replaces ad-hoc icon suppression
 - `CONFIG.statusEffects[].icon` → `.img`
@@ -236,7 +236,7 @@ const region = canvas.scene.regions.get(id)
 | V13 | V14 |
 |-----|-----|
 | `t: 'circle' / 'rect' / 'cone' / 'ray'` | shape `type: 'circle' / 'rectangle' / 'cone' / 'line'` |
-| — | also `ellipse`, `polygon`, `ring`, `emanation` |
+| — | also `ellipse`, `polygon`, `ring`, `emanation`, `token`, `grid` |
 | `MeasuredTemplate.getCircleShape()` etc. | `CircleShapeData`, `RectangleShapeData`, `ConeShapeData`, `LineShapeData`, … |
 | `RegionDocument#regionShapes` | `RegionDocument#shapes` |
 | `RegionDocument#attachedToken` | `RegionDocument#attachment.token` |
@@ -339,13 +339,13 @@ Everything marked `{since: 14, until: 16}` that a system or module is likely to 
 | `DocumentIndex#_addLeaf` | `#_addLeaves` |
 | `foundry.documents.modifyBatch({documentType})` | `{documentName}` |
 | `template.json` | `documentTypes` + `TypeDataModel` |
-| `Application` / `FormApplication` / `Dialog` / `DocumentSheet` | ApplicationV2 classes |
+| `Application` / `FormApplication` / `Dialog` / `DocumentSheet` (deprecated since **V13**, same V16 removal) | ApplicationV2 classes |
 
 Removed outright (no shim): `ApplicationV2#bringToTop` (use `bringToFront`), the `{{select}}` and `{{colorPicker}}` Handlebars helpers, `PlaceablesLayer.SORT_ORDER` and `CREATION_STATES`, TinyMCE.
 
 ## Additions Worth Adopting
 
-- **`_loc`** — a global bound to `game.i18n.localize`: `_loc('MY_SYSTEM.Key')`
+- **`_loc`** — a global bound to `game.i18n.localize`: `_loc('MY_SYSTEM.Key')`. `localize()` now also takes interpolation data; `game.i18n.format` is kept as an alias of it
 - **Detached windows** — any ApplicationV2 can pop out into its own browser window
 - **`foundry.documents.modifyBatch`** — atomic multi-document writes
 - **Scene Levels** — native multi-level maps

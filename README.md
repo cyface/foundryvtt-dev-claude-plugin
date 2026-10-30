@@ -21,15 +21,20 @@ Both skills include reference files with complete, verified code examples.
 |-------|----------|--------------|
 | **foundryvtt-reviewer** | Proactively after writing FoundryVTT code | Reviews for V13/V12 patterns that break under V14, data model and Active Effects mistakes, ApplicationV2 errors, template issues, i18n violations, security issues |
 
-## Installation
+## Install
 
-```bash
-# From the Claude Code marketplace (recommended)
-/install foundryvtt-dev
-
-# Or install directly from GitHub
-claude plugin add --git https://github.com/cyface/foundryvtt-dev-claude-plugin.git
+```text
+/plugin install foundryvtt-dev --marketplace cyface/cyface-claude-plugin-marketplace
 ```
+
+That single command works on Claude Code 2.1.275 or later. On older versions, add the [cyface marketplace](https://github.com/cyface/cyface-claude-plugin-marketplace) first:
+
+```text
+/plugin marketplace add cyface/cyface-claude-plugin-marketplace
+/plugin install foundryvtt-dev@cyface
+```
+
+From a shell: `claude plugin marketplace add cyface/cyface-claude-plugin-marketplace && claude plugin install foundryvtt-dev@cyface`. To try a local checkout without installing: `claude --plugin-dir ./foundryvtt-dev-claude-plugin`.
 
 ## Skills Detail
 
@@ -81,13 +86,16 @@ foundryvtt-dev/
 +-- agents/
 |   +-- foundryvtt-reviewer.md
 +-- README.md
++-- CHANGELOG.md
 +-- PRIVACY.md
 +-- LICENSE
 ```
 
 ## FoundryVTT Version
 
-- **Target**: FoundryVTT v14 (verified against 14.365 Stable)
+- **Target**: FoundryVTT v14
+- **Last verified against**: FoundryVTT **14.369** Stable, on 2026-10-30
+  (this line and `metadata.foundryVerified` in `.claude-plugin/plugin.json` are the only places the build number is recorded; the skills and reference files deliberately say "V14" and defer here)
 - Requires **Node.js 24** (`>=24.13.1 <25`) for system tooling
 - Includes V13→V14 migration guidance, and V12→V13 for packages still on AppV1
 

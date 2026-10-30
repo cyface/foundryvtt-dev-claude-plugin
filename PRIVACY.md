@@ -2,7 +2,7 @@
 
 **foundryvtt-dev** Claude Code Plugin
 
-Last updated: March 2, 2026
+Last updated: October 30, 2026
 
 ## Overview
 

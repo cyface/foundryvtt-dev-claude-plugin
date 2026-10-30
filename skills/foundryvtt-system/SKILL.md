@@ -13,12 +13,11 @@ description: >-
   "FoundryVTT API", "SCSS in Foundry", "language files", "translation files",
   "pack management", "LevelDB packs", "compendium JSON", "V13 to V14 migration",
   or mentions building a game system or module for FoundryVTT.
-version: 2.0.0
 ---
 
 # FoundryVTT System Development Guide
 
-Building a game system or module for **FoundryVTT V14** (verified against 14.365 Stable). Covers project structure, data models, documents, Active Effects, hooks, settings, packs, testing, and i18n.
+Building a game system or module for **FoundryVTT V14** (last-verified build: see the plugin README). Covers project structure, data models, documents, Active Effects, hooks, settings, packs, testing, and i18n.
 
 **Note**: This plugin is a community resource and is not affiliated with or endorsed by Foundry Gaming LLC.
 
@@ -40,7 +39,7 @@ my-system/
 |   +-- item.mjs          # Custom Item document class
 |   +-- active-effect.mjs # Custom ActiveEffect class (optional)
 |   +-- config.mjs        # System constants and lookup tables
-+-- templates/            # Handlebars templates (.hbs)
++-- templates/            # Handlebars templates (.hbs by convention; .html also works)
 +-- styles/               # SCSS/CSS stylesheets
 +-- lang/                 # Translation files (en.json, de.json, …)
 +-- packs/                # Compendium packs
@@ -237,8 +236,9 @@ Hooks.once('ready', () => {
 | `ready` | Game fully loaded | none |
 | `createActor` / `updateActor` / `deleteActor` | Document lifecycle | `(doc, …, options, userId)` |
 | `createItem` / `updateItem` / `deleteItem` | Document lifecycle | `(doc, …, options, userId)` |
-| `preRenderApplication` | Before an AppV2 renders (V14) | `(app, context, options)` |
-| `renderChatMessageHTML` | Chat message rendered | `(message, html, data)` |
+| `preRender{ClassName}` … `preRenderApplicationV2` | Before an AppV2 renders (V14); one hook per class in the chain | `(app, context, options)` |
+| `render{ClassName}` … `renderApplicationV2` | After an AppV2 renders; `renderApplication` is AppV1-only | `(app, element, context, options)` |
+| `renderChatMessageHTML` | Chat message rendered | `(message, html)` — core passes no third argument |
 | `preCreateChatMessage` | Before chat message created | `(message, data, options, userId)` |
 | `hotbarDrop` | Macro dropped on hotbar | `(bar, data, slot)` |
 | `getChatMessageContextOptions` | Chat context menu | `(application, entries)` |
@@ -318,7 +318,7 @@ await canvas.scene.createEmbeddedDocuments('Region', [{
 }])
 ```
 
-Shape types: `circle`, `rectangle`, `ellipse`, `polygon`, `cone`, `ring`, `line`, `emanation`. Regions can attach to a token, carry behaviors, and define multiple teleport destinations — none of which templates could do.
+Shape types: `circle`, `rectangle`, `ellipse`, `polygon`, `cone`, `ring`, `line`, `emanation`, `token`, `grid`. Regions can attach to a token, carry behaviors, and define multiple teleport destinations — none of which templates could do.
 
 ## Batched Document Updates
 
@@ -372,6 +372,8 @@ const message = game.i18n.format('MY_SYSTEM.RollResult', { actor: actorName, res
 
 // V14 adds a bound global shorthand for localize:
 const label2 = _loc('MY_SYSTEM.AbilityStr')
+// Also in V14, localize() accepts interpolation data and format() is an alias of it:
+const message2 = game.i18n.localize('MY_SYSTEM.RollResult', { actor: actorName, result: rollTotal })
 ```
 
 ```handlebars

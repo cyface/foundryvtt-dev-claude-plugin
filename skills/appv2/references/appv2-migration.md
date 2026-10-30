@@ -2,7 +2,7 @@
 
 Two migrations in one file:
 
-- **[Part 1: V13 → V14](#part-1-v13--v14)** — current generation. Verified against Foundry 14.365 Stable.
+- **[Part 1: V13 → V14](#part-1-v13--v14)** — current generation. Last-verified build: see the plugin README.
 - **[Part 2: V12 → V13](#part-2-v12--v13)** — the original Application → ApplicationV2 rewrite, kept for packages still making that jump.
 
 ---
@@ -21,7 +21,7 @@ V14 is mostly *additive* for ApplicationV2 code: a V13 sheet usually runs unmodi
 
 ```json
 {
-  "compatibility": { "minimum": "14", "verified": "14.365" }
+  "compatibility": { "minimum": "14", "verified": "14.x" }
 }
 ```
 
@@ -41,7 +41,7 @@ V14 is mostly *additive* for ApplicationV2 code: a V13 sheet usually runs unmodi
 | — | `attachWindow()` / `detachWindow()` / `renderChild(app)` | pop-out window support |
 | — | `_canAttach()` / `_canDetach()` / `_onAttach()` / `_onDetach()` | opt out of, or react to, detaching |
 | — | `_getFrameButtons(options)` | frame buttons distinct from `_getHeaderControls()` |
-| — | `preRenderApplication` hook | fires before render with context and options |
+| — | `preRender{ClassName}` hooks | fire before render with `(app, context, options)`, once per class in the chain down to `preRenderApplicationV2` (the literal name `preRenderApplication` never fires) |
 
 `static emittedEvents` is `["prerender", "render", "close", "position"]`.
 
@@ -50,7 +50,7 @@ Default `window.controls` now contains Detach and Attach entries. Replacing `win
 ### Detached windows
 
 ```javascript
-app.render({ window: { detach: true } })
+app.render({ window: { detached: true } })
 ```
 
 A detached app lives in a different `document`. Anything cached against the global `document` or `window` during render must be re-derived from `this.element.ownerDocument`. Open child apps with `this.renderChild(childApp)` so they follow the parent.
@@ -156,7 +156,7 @@ await canvas.scene.createEmbeddedDocuments('Region', [{
 - `canvas.scene.templates.get(id)` → `canvas.scene.regions.get(id)`
 - `RegionDocument#regionShapes` → `RegionDocument#shapes`
 - `RegionDocument#attachedToken` → `RegionDocument#attachment.token`
-- `RegionShape` → the `BaseShapeData` subclasses: `Circle`, `Rectangle`, `Ellipse`, `Polygon`, `Cone`, `Ring`, `Line`, `Emanation`
+- `RegionShape` → the `BaseShapeData` subclasses: `Circle`, `Rectangle`, `Ellipse`, `Polygon`, `Cone`, `Ring`, `Line`, `Emanation`, `Token`, `Grid`
 - MeasuredTemplate `t: "ray"` → Region shape `type: "line"`
 - `template.document.direction` → `region.document.shapes[0].rotation`
 - `MeasuredTemplate.getCircleShape/getConeShape/getRayShape/getRectShape` → `CircleShapeData` / `ConeShapeData` / `LineShapeData` / `RectangleShapeData`
@@ -285,7 +285,7 @@ NotesLayer.TOGGLE_SETTING         foundry.canvas.layers.NotesLayer.TOGGLE_SETTIN
 | `activateListeners(html)` | `DEFAULT_OPTIONS.actions` | Declarative actions |
 | `_updateObject(event, formData)` | `static #onSubmitForm(event, form, formData)` | Static form handler |
 | `this.object` | `this.document` / `this.actor` | Depends on base class |
-| `template: 'path.html'` | `static PARTS = { … }` | Template parts |
+| `template: 'path.hbs'` | `static PARTS = { … }` | Template parts |
 | `tabs: [{ navSelector }]` | `static TABS = { … }` | New tab configuration |
 | `new MyApp(document, options)` | `new MyApp({ document, …options })` | Single options object |
 | `mergeObject(super.defaultOptions, {})` | N/A | DEFAULT_OPTIONS auto-merges |
@@ -306,7 +306,7 @@ class D extends FormApplication { }       class D extends HandlebarsApplicationM
 static get defaultOptions() {
   return foundry.utils.mergeObject(super.defaultOptions, {
     classes: ['my-system', 'sheet', 'actor'],
-    template: 'systems/my-system/templates/actor-sheet.html',
+    template: 'systems/my-system/templates/actor-sheet.hbs',
     width: 600, height: 600, resizable: true,
     tabs: [{ navSelector: '.tabs', contentSelector: '.tab-content', initial: 'character' }]
   })
